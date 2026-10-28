@@ -137,6 +137,10 @@ module cheat_binloader #(
 
   localparam [31:0] MAGIC   = 32'h43414247;   // "GBAC" with byte 0 in the LSB
   localparam [7:0]  VERSION = 8'd1;
+  localparam [7:0]  VERSION_GROUPED = 8'd2;
+  reg grouped_format;
+  reg [7:0] group_id_byte;
+  reg [15:0] declared_groups;
 
   // Nine bytes of every sixteen carry meaning. Held little-endian, byte 0 in
   // the LSB, so the register is filled by shifting DOWN and the first byte
@@ -175,13 +179,18 @@ module cheat_binloader #(
   // Header fields, read out of sr on the sixteenth byte. Bytes 8..15 of the
   // header are reserved and not kept, so sr has not moved since byte 7 and
   // still holds byte 0 at [15:8] through byte 7 at [71:64].
-  wire        hdr_ok  = (sr[39:8] == MAGIC) && (sr[47:40] == VERSION);
+  wire        hdr_ok  = (sr[39:8] == MAGIC) &&
+                        ((sr[47:40] == VERSION) ||
+                         ((sr[47:40] == VERSION_GROUPED) &&
+                          (declared_groups <= 16'd32) &&
+                          (declared_groups != 16'd0 || sr[71:56] == 16'd0)));
   wire        declmax = |sr[71:62];      // declared count above 63
   wire [5:0]  decl    = declmax ? 6'h3F : sr[61:56];
 
   // The entry, once nine bytes have been shifted in: byte 0 at [7:0] through
   // byte 12 at [71:64]. The zeroes are the fields gba_cheats does not read.
-  assign cheat_in = {24'd0,        // 127:104 unread
+  assign cheat_in = {16'd0,        // 127:112 unread
+                     (grouped_format ? group_id_byte : 8'd0), // 111:104 group ID
                      sr[71:64],    // 103:96  byte enables and optype
                      4'd0,         // 95:92   unread
                      sr[59:32],    // 91:64   address, 28 bits
@@ -191,6 +200,9 @@ module cheat_binloader #(
   always @(posedge clk) begin
     if (reset) begin
       sr           <= 72'd0;
+      grouped_format <= 1'b0;
+      group_id_byte <= 8'd0;
+      declared_groups <= 16'd0;
       pos          <= 4'd0;
       hdr          <= 1'b1;
       todo         <= 6'd0;
@@ -206,6 +218,9 @@ module cheat_binloader #(
         if (byte_count != {20{1'b1}}) byte_count <= byte_count + 20'd1;
 
         if (keep) sr <= {data, sr[71:8]};
+        if (hdr && pos == 4'd8) declared_groups[7:0] <= data;
+        if (hdr && pos == 4'd9) declared_groups[15:8] <= data;
+        if (!hdr && pos == 4'd13) group_id_byte <= data;
         pos <= pos + 4'd1;
 
         if (done) begin
@@ -216,13 +231,18 @@ module cheat_binloader #(
             hdr <= 1'b0;
             if (hdr_ok) begin
               todo        <= decl;
-              group_count <= decl;
+              grouped_format <= (sr[47:40] == VERSION_GROUPED);
+              group_count <= (sr[47:40] == VERSION_GROUPED) ?
+                             declared_groups[5:0] : decl;
             end else begin
               overrun <= 1'b1;
             end
           end else if (pend) begin
             todo <= todo - 6'd1;
-            if (full) begin
+            if (grouped_format && (group_id_byte >= {2'b00, group_count})) begin
+              overrun <= 1'b1;
+              if (reject_count != 6'h3F) reject_count <= reject_count + 6'd1;
+            end else if (full) begin
               // The converter is supposed to enforce the ceiling, so this is a
               // malformed-file path, not a normal one. Dropping the excess is
               // the only safe answer: wrapping would overwrite entries already

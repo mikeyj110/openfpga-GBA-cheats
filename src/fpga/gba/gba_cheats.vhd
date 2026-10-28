@@ -16,6 +16,8 @@ entity gba_cheats is
       
       cheat_clear    : in     std_logic;
       cheats_enabled : in     std_logic;
+      group_mode     : in     std_logic := '0';
+      group_mask     : in     std_logic_vector(31 downto 0) := (others => '1');
       cheat_on       : in     std_logic;
       cheat_in       : in     std_logic_vector(127 downto 0);
       cheats_active  : out    std_logic := '0';
@@ -91,6 +93,7 @@ architecture arch of gba_cheats is
    signal first_free : integer range 0 to CHEATCOUNT := 0;
    
    signal skip_next  : std_logic := '0';
+   signal prior_group : std_logic_vector(7 downto 0) := (others => '0');
    signal oldvalue   : std_logic_vector(31 downto 0);
    
    signal settle     : integer range 0 to SETTLECOUNT := 0;
@@ -155,6 +158,7 @@ begin
                      settle       <= 0;
                      cheatindex   <= 0;
                      skip_next    <= '0';
+                     prior_group  <= (others => '0');
                      sleep_cheats <= '1';
                   elsif (fifo_Empty = '0') then
                      state       <= FIFO_WAIT;
@@ -226,6 +230,19 @@ begin
                when SKIPTEST =>
                   if (cheatdata(99 downto 96) = OPTYPE_EMPTY) then
                      state <= IDLE;
+                  elsif (group_mode = '1' and
+                         (unsigned(cheatdata(111 downto 104)) > 31 or
+                          group_mask(to_integer(unsigned(cheatdata(111 downto 104))) mod 32) = '0')) then
+                     skip_next <= '0';
+                     state <= NEXT_CHEAT;
+                  elsif (group_mode = '1' and
+                         cheatdata(111 downto 104) /= prior_group) then
+                     skip_next <= '0';
+                     prior_group <= cheatdata(111 downto 104);
+                     state <= WAIT_READ;
+                     Bus_ena <= '1';
+                     BusAddr <= cheatdata(91 downto 64);
+                     BusRnW <= '1';
                   elsif (skip_next = '1') then
                      skip_next <= '0';
                      state     <= NEXT_CHEAT;

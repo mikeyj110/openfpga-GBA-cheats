@@ -51,6 +51,9 @@ module tb_cheat_video_rgb;
         check_pixel(8'd16,24'h205080,"first selection blue");
         check_pixel(8'd24,24'h3f3f3f,"second row dimmed");
         menu_show=0;
+        // The display list is rebuilt at vertical blank, not immediately.
+        // Wait for a complete frame before checking restored legacy rows.
+        repeat(308*228*2) @(negedge clk);
         // Existing OSD is independently visible while interactive menu closes.
         // Only group zero is enabled, so rows below it are normal game pixels.
         check_pixel(8'd32,24'hffffff,"legacy enabled-only overlay restored");

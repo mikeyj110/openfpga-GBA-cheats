@@ -18,7 +18,11 @@ def main():
     run("-a", "--std=08", str(SRC / "proc_bus_gba.vhd"))
     run("-a", "--std=08", str(SRC / "gba_cheats.vhd"))
     run("-e", "--std=08", "gba_cheats")
-    print("PASS gba_cheats VHDL analysis and elaboration (not behavioral simulation)")
+    print("PASS gba_cheats VHDL analysis and elaboration")
+    run("-a", "--std=08", str(ROOT / "tools/sim/tb_cheat_group_gate.vhd"))
+    run("-e", "--std=08", "tb_cheat_group_gate")
+    run("-r", "--std=08", "tb_cheat_group_gate", "--assert-level=error", "--stop-time=10us")
+    print("PASS grouped execution behavioral bench")
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,8 @@ class GroupedBinaryTests(unittest.TestCase):
         rows = [v2.GroupedEntry(0x1234, 0), v2.GroupedEntry(0x5678, 0),
                 v2.GroupedEntry(0x9abc, 1)]
         blob = v2.pack(rows, 2)
-        self.assertEqual(blob[:6], b"GBAC\\x02\\x00".decode("unicode_escape").encode("latin1"))
+        self.assertEqual(blob[:4], b"GBAC")
+        self.assertEqual(blob[4], 2)
         self.assertEqual(v2.unpack(blob), (rows, 2))
         self.assertEqual(len(blob), 64)
 

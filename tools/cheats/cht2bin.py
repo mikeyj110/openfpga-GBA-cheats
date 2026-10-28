@@ -44,6 +44,8 @@ except ImportError:                 # imported from outside tools/cheats
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import gbacht
 
+import grouped_chtbin
+
 MAGIC = b"GBAC"
 VERSION = 1
 HEADER_SIZE = 16
@@ -125,7 +127,7 @@ class Result:
         return s
 
 
-def convert(data: bytes, parse_limit: int = MAX_ENTRIES) -> Result:
+def convert(data: bytes, parse_limit: int = MAX_ENTRIES, format_version: int = 1) -> Result:
     """Parse `.cht` bytes and pack the words that come out.
 
     Only enabled cheats reach the file, and that is gbacht's doing, not ours:
@@ -154,7 +156,15 @@ def convert(data: bytes, parse_limit: int = MAX_ENTRIES) -> Result:
             words = words[:-len(groups[-1].entries)]
             groups = groups[:-1]
         cheats = len(groups)
-    return Result(pack(words), cheats, len(words), dropped, dict(st.dropped))
+    if format_version == 1:
+        blob = pack(words)
+    elif format_version == 2:
+        tagged = [grouped_chtbin.GroupedEntry(e.word(), group_id)
+                  for group_id, group in enumerate(groups) for e in group.entries]
+        blob = grouped_chtbin.pack(tagged, len(groups))
+    else:
+        raise ValueError(f"unsupported format version {format_version}")
+    return Result(blob, cheats, len(words), dropped, dict(st.dropped))
 
 
 def out_path(src: str, outdir: str | None) -> str:
@@ -167,7 +177,7 @@ def out_path(src: str, outdir: str | None) -> str:
     return os.path.join(outdir, os.path.basename(base)) if outdir else base
 
 
-def convert_one(src: str, dst: str | None, outdir: str | None) -> int:
+def convert_one(src: str, dst: str | None, outdir: str | None, format_version: int = 1) -> int:
     """One input file to one output file. Returns a process exit status."""
     try:
         data = sys.stdin.buffer.read() if src == "-" else open(src, "rb").read()
@@ -175,7 +185,7 @@ def convert_one(src: str, dst: str | None, outdir: str | None) -> int:
         print(f"cht2bin: {src}: {e.strerror or e}", file=sys.stderr)
         return 1
     try:
-        res = convert(data)
+        res = convert(data, format_version=format_version)
     except Exception as e:                      # noqa: BLE001
         print(f"cht2bin: {src}: {e}", file=sys.stderr)
         return 1
@@ -214,6 +224,8 @@ def main(argv: list[str] | None = None) -> int:
                          "with its extension replaced by .chtbin)")
     ap.add_argument("-d", "--outdir", metavar="DIR",
                     help="write outputs into DIR, keeping their names")
+    ap.add_argument("--format", choices=("v1", "v2"), default="v1",
+                    help="binary format version (default: v1; v2 is not yet supported by FPGA)")
     args = ap.parse_args(argv)
 
     if args.o and len(args.inputs) > 1:
@@ -225,7 +237,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Every file is attempted even after one fails, because a batch conversion
     # of a cheat library should not stop at the first unreadable file.
-    return max(convert_one(src, args.o, args.outdir) for src in args.inputs)
+    return max(convert_one(src, args.o, args.outdir, int(args.format[1:])) for src in args.inputs)
 
 
 if __name__ == "__main__":

@@ -67,7 +67,15 @@ QSF="$WORK/src/fpga/build/ap_core.qsf"
 
 # Upstream's generate.tcl pins the compile to 4 processors, which is right for a
 # CI runner and wasteful here. The build copy uses whatever the host has.
-sed -i 's/^set_global_assignment -name NUM_PARALLEL_PROCESSORS 4$/set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL/' "$WORK/generate.tcl"
+"$PY" - "$WORK/generate.tcl" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+p.write_text(p.read_text().replace(
+    "set_global_assignment -name NUM_PARALLEL_PROCESSORS 4",
+    "set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL"
+))
+PY
 
 # Optional fitter seed. This design closes setup by 0.102 ns on clk_sys in
 # upstream's own build, so placement variance alone can decide a marginal path.
@@ -84,7 +92,17 @@ fi
 
 # NPROC caps Quartus's parallelism, so two experiments can share the machine.
 if [[ -n "${NPROC:-}" ]]; then
-  sed -i "s/^set_global_assignment -name NUM_PARALLEL_PROCESSORS .*$/set_global_assignment -name NUM_PARALLEL_PROCESSORS $NPROC/" "$WORK/generate.tcl"
+  "$PY" - "$WORK/generate.tcl" "$NPROC" <<'PY'
+from pathlib import Path
+import re
+import sys
+p = Path(sys.argv[1])
+p.write_text(re.sub(
+    r"^set_global_assignment -name NUM_PARALLEL_PROCESSORS .*?$",
+    f"set_global_assignment -name NUM_PARALLEL_PROCESSORS {sys.argv[2]}",
+    p.read_text(), flags=re.MULTILINE
+))
+PY
   echo "== parallel processors $NPROC"
 fi
 

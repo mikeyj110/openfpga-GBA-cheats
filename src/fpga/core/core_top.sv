@@ -1418,14 +1418,17 @@ wire [5:0] cheat_entries, cheat_groups;
 // The overlay reads these on clk_vid. They change only while a file loads
 // and the overlay is cosmetic, so two flops each rather than a synchroniser
 // per bit: the worst a torn sample does is one frame with a stale count.
-// Every group the file carried is on (the host resolved the enable keys),
-// so the mask is the master switch spread over the loaded groups.
+// Runtime group selections are display-only until the cheat engine supports
+// per-group execution gating. The master switch still controls execution.
 reg [31:0] osd_mask_ss, osd_mask_s;
 reg [5:0]  osd_groups_ss, osd_groups_s, osd_codes_ss, osd_codes_s;
 reg        osd_show_ss, osd_show_s, osd_cart_ss, osd_cart_s;
 reg menu_show_ss, menu_show_s;
 reg [4:0] menu_selected_ss, menu_selected_s;
-wire [31:0] osd_mask_sys = cheats_on ? ((32'd1 << cheat_groups) - 32'd1) : 32'd0;
+wire [31:0] cheat_runtime_enabled;
+wire [31:0] cheat_loaded_mask = (cheat_groups >= 6'd32) ? 32'hffffffff :
+    ((32'h00000001 << cheat_groups) - 32'h00000001);
+wire [31:0] osd_mask_sys = cheats_on ? (cheat_runtime_enabled & cheat_loaded_mask) : 32'd0;
 always @(posedge clk_vid) begin
     osd_mask_ss   <= osd_mask_sys;        osd_mask_s   <= osd_mask_ss;
     osd_groups_ss <= cheat_groups;        osd_groups_s <= osd_groups_ss;
@@ -1784,7 +1787,7 @@ synch_3 #(.WIDTH(32)) cont1_sync (
 // Pocket cont1_key is also active-high, so no inversion needed
 // Pocket bitmap: [0]=up [1]=down [2]=left [3]=right [4]=A [5]=B [6]=X [7]=Y [8]=L1 [9]=R1 [14]=sel [15]=start
 
-// Prototype menu input capture. No overlay renderer or cheat mutation yet.
+// Interactive menu input and runtime-only group selection.
 wire cheat_menu_open;
 wire [4:0] cheat_menu_selected;
 wire cheat_menu_capture;
@@ -1798,6 +1801,14 @@ cheat_menu_input menu_input (
     .selected(cheat_menu_selected),
     .consume_game_keys(cheat_menu_capture),
     .toggle_selected(cheat_menu_toggle)
+);
+cheat_runtime_mask runtime_mask (
+    .clk(clk_sys),
+    .reset(cheat_reset),
+    .group_count(cheat_groups),
+    .toggle(cheat_menu_toggle),
+    .selected(cheat_menu_selected),
+    .enable_mask(cheat_runtime_enabled)
 );
 // Capture all gameplay controls while the menu is active. This also blocks
 // L+R+Select from reaching the emulated GBA during the opening chord.

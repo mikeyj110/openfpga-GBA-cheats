@@ -11,7 +11,9 @@ pocket_version() {
   day="${BASH_REMATCH[1]}"
   [[ "${day:0:4}" != 0000 ]] || return 2
   iso="${day:0:4}-${day:4:2}-${day:6:2}"
-  parsed=$(date -u -d "$iso" +%Y%m%d 2>/dev/null) || {
+  # GNU date (Linux) uses -d; BSD date (macOS) uses -j -f.
+  parsed=$(date -u -d "$iso" +%Y%m%d 2>/dev/null) ||
+    parsed=$(date -j -u -f "%Y-%m-%d" "$iso" +%Y%m%d 2>/dev/null) || {
     echo "invalid release date: $day" >&2
     return 2
   }

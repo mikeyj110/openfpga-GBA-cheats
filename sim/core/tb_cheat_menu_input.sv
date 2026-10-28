@@ -3,11 +3,12 @@
 module tb_cheat_menu_input;
     reg clk = 0, reset = 1;
     reg [31:0] keys = 0;
+    reg [5:0] group_count = 3;
     wire menu_open, consume_game_keys, toggle_selected;
     wire [4:0] selected;
     always #5 clk = ~clk;
     cheat_menu_input #(.DEBOUNCE_CYCLES(2)) dut (
-        .clk(clk), .reset(reset), .keys(keys), .menu_open(menu_open),
+        .clk(clk), .reset(reset), .keys(keys), .group_count(group_count), .menu_open(menu_open),
         .selected(selected), .consume_game_keys(consume_game_keys),
         .toggle_selected(toggle_selected)
     );
@@ -26,6 +27,14 @@ module tb_cheat_menu_input;
         keys[1]=1; tick();
         check(selected==1, "down selects next");
         tick(); check(selected==1, "held down moves once");
+        keys=0; tick(); keys[1]=1; tick();
+        check(selected==2, "down selects last group");
+        keys=0; tick(); keys[1]=1; tick();
+        check(selected==2, "down clamps at last group");
+        keys=0; tick(); keys[0]=1; tick();
+        check(selected==1, "up moves back");
+        group_count=1; keys=0; tick();
+        check(selected==0, "selection clamps when group count shrinks");
         keys=0; tick();
         keys[4]=1; tick();
         check(toggle_selected, "A generates toggle pulse");

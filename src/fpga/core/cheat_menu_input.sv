@@ -7,6 +7,7 @@ module cheat_menu_input #(
     input wire clk,
     input wire reset,
     input wire [31:0] keys,
+    input wire [5:0] group_count,
     output reg menu_open,
     output reg [4:0] selected,
     output wire consume_game_keys,
@@ -33,6 +34,9 @@ module cheat_menu_input #(
             b_prev <= 1'b0;
             cooldown <= 0;
         end else begin
+            // Loaded cheat groups may change when a new game starts.
+            if (group_count == 0) selected <= 5'd0;
+            else if ({1'b0, selected} >= group_count) selected <= group_count[4:0] - 5'd1;
             chord_prev <= chord;
             up_prev <= keys[0];
             down_prev <= keys[1];
@@ -48,10 +52,10 @@ module cheat_menu_input #(
                 if (keys[5] && !b_prev)
                     menu_open <= 1'b0;
                 else if (keys[0] && !up_prev)
-                    selected <= selected - 5'd1;
+                    selected <= (selected == 5'd0) ? 5'd0 : selected - 5'd1;
                 else if (keys[1] && !down_prev)
-                    selected <= selected + 5'd1;
-                else if (keys[4] && !a_prev)
+                    selected <= (group_count == 0 || selected >= group_count - 6'd1) ? selected : selected + 5'd1;
+                else if (keys[4] && !a_prev && group_count != 0)
                     toggle_selected <= 1'b1;
             end
         end

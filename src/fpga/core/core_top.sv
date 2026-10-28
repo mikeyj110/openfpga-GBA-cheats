@@ -1778,8 +1778,26 @@ synch_3 #(.WIDTH(32)) cont1_sync (
 // Pocket cont1_key is also active-high, so no inversion needed
 // Pocket bitmap: [0]=up [1]=down [2]=left [3]=right [4]=A [5]=B [6]=X [7]=Y [8]=L1 [9]=R1 [14]=sel [15]=start
 
+// Prototype menu input capture. No overlay renderer or cheat mutation yet.
+wire cheat_menu_open;
+wire [4:0] cheat_menu_selected;
+wire cheat_menu_capture;
+wire cheat_menu_toggle;
+cheat_menu_input menu_input (
+    .clk(clk_sys),
+    .reset(reset),
+    .keys(cont1_key_s),
+    .menu_open(cheat_menu_open),
+    .selected(cheat_menu_selected),
+    .consume_game_keys(cheat_menu_capture),
+    .toggle_selected(cheat_menu_toggle)
+);
+// Capture all gameplay controls while the menu is active. This also blocks
+// L+R+Select from reaching the emulated GBA during the opening chord.
+wire [31:0] game_keys = cheat_menu_capture ? 32'd0 : cont1_key_s;
+
 // X button (bit 6) — Turbo, not a GBA button
-wire x_button = cont1_key_s[6];
+wire x_button = game_keys[6];
 
 // Turbo: free-running counter, bit[20] toggles at ~48 Hz → ~24 presses/sec
 reg [20:0] turbo_counter = 0;
@@ -1790,22 +1808,22 @@ wire turbo_pulse = turbo_counter[20];
 wire turbo_a = (turbo_mode_s == 2'd1) && x_button && turbo_pulse;
 wire turbo_b = (turbo_mode_s == 2'd2) && x_button && turbo_pulse;
 
-wire key_a      = cont1_key_s[4] | turbo_a;
-wire key_b      = cont1_key_s[5] | turbo_b;
-wire key_select = cont1_key_s[14];
-wire key_start  = cont1_key_s[15];
-wire key_up     = cont1_key_s[0];
-wire key_down   = cont1_key_s[1];
-wire key_left   = cont1_key_s[2];
-wire key_right  = cont1_key_s[3];
-wire key_r      = cont1_key_s[9];
-wire key_l      = cont1_key_s[8];
+wire key_a      = game_keys[4] | turbo_a;
+wire key_b      = game_keys[5] | turbo_b;
+wire key_select = game_keys[14];
+wire key_start  = game_keys[15];
+wire key_up     = game_keys[0];
+wire key_down   = game_keys[1];
+wire key_left   = game_keys[2];
+wire key_right  = game_keys[3];
+wire key_r      = game_keys[9];
+wire key_l      = game_keys[8];
 
 // Y button (bit 7) — Fast Forward, not a GBA button
 // Hold mode: active while button pressed
 // Toggle mode: press toggles on/off
 // Disabled mode: fast forward button does nothing
-wire ff_button = cont1_key_s[7];
+wire ff_button = game_keys[7];
 
 reg ff_button_prev = 0;
 reg ff_toggle_state = 0;

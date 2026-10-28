@@ -45,3 +45,17 @@ Do **not** just advertise a nonzero save size in cartridge mode: that may change
 - No changes to cheat pipeline or existing SD save behavior.
 - Keep core folder exactly `author.shortname` (currently `mikeyj110.GBA`).
 - Preserve current working bitstream until simulation and compile tests pass.
+
+## Stage 0 code inspection findings (2026-10-28)
+
+In `src/fpga/core/core_top.sv`:
+
+- Lines 350–409 instantiate `data_loader` / `data_unloader` using bridge address prefix `0x2`, backed by PSRAM die 1. This path belongs to SD-ROM saves, **not** directly to cartridge save storage.
+- Lines 948–952 use 64 KiB default save size and 128 KiB when `det_flash_1m`; this is SD save sizing and not a cartridge device-identification guarantee.
+- Lines 2097–2107 use `cart_eeprom_bridge` for EEPROM transactions.
+- Lines 2109–2127 use `cart_bus_arbiter` to serialize ROM, save, EEPROM, and IO requests. The existing save port is driven by the running GBA, so an independent manager needs its own arbitration source and exclusive-access condition.
+- Lines 2129–2170 instantiate `gba_cart_controller`, which exposes byte-wide `save_req/save_addr/save_rnw/save_din/save_dout/save_done` and separate EEPROM signals. FLASH protocol commands and EEPROM serial transactions must be handled correctly, not treated as a flat byte array.
+
+**Design implication:** do not connect the SD `.sav` loader directly to `ctl_save_*`. First inspect `cart_bus_arbiter`, `gba_cart_controller`, and the save device implementation, and establish a documented host export/import mechanism. In particular, a raw FLASH save backup requires correct flash-bank selection and command sequencing; a byte read alone may not capture all banks.
+
+No RTL or hardware behavior changed in this inspection.

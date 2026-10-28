@@ -10,6 +10,7 @@ architecture test of tb_cheat_group_gate is
  signal cheat_on : std_logic := '0';
  signal cheat_in : std_logic_vector(127 downto 0) := (others => '0');
  signal vsync : std_logic := '0';
+ signal group_mode : std_logic := '1';
  signal bus_ena : std_logic;
  signal bus_rnw : std_logic;
  signal bus_addr : std_logic_vector(27 downto 0);
@@ -26,7 +27,7 @@ begin
  clk <= not clk after 5 ns;
  dut : entity work.gba_cheats
  port map(clk100=>clk,gb_on=>gb_on,cheat_clear=>'0',
- cheats_enabled=>'1',group_mode=>'1',group_mask=>x"00000002",
+ cheats_enabled=>'1',group_mode=>group_mode,group_mask=>x"00000002",
  cheat_on=>cheat_on,cheat_in=>cheat_in,cheats_active=>active,
  vsync=>vsync,bus_ena_in=>'0',sleep_cheats=>sleep,
  BusAddr=>bus_addr,BusRnW=>bus_rnw,BusACC=>bus_acc,
@@ -120,6 +121,23 @@ begin
   assert reads=5 report "nonmatching condition: unexpected write read" severity failure;
   assert writes=3 report "nonmatching condition: unexpected write" severity failure;
   report "PASS enabled nonmatching conditional pair" severity note;
+  -- Legacy mode must ignore the group mask and execute untagged entries.
+  gb_on <= '0';
+  group_mode <= '0';
+  wait for 350 ns;
+  gb_on <= '1';
+  wait for 50 ns;
+  push(0,16#2000020#);
+  wait for 300 ns;
+  vsync <= '1';
+  wait until falling_edge(clk);
+  vsync <= '0';
+  wait for 4000 ns;
+  assert reads=6 report "legacy mode: expected read despite disabled mask bit" severity failure;
+  assert writes=4 report "legacy mode: expected write despite disabled mask bit" severity failure;
+  assert last_write_addr=std_logic_vector(to_unsigned(16#2000020#,28))
+    report "legacy mode: wrong write address" severity failure;
+  report "PASS legacy mode ignores group mask" severity note;
   stop;
   wait;
  end process;

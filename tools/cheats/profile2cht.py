@@ -44,7 +44,7 @@ def convert(profile):
         if not isinstance(cid, str) or not cid or cid in ids:
             raise ValueError(f"cheat {i}: missing or duplicate id")
         ids.add(cid)
-        if not isinstance(name, str) or not name.strip() or len(name) > MAX_NAME or any(c in name for c in '\\n\\r"'):
+        if not isinstance(name, str) or not name.strip() or len(name) > MAX_NAME or any(ord(ch) < 32 or ch == '"' for ch in name):
             raise ValueError(f"cheat {i}: invalid name")
         if fmt not in FORMATS:
             raise ValueError(f"cheat {i}: unsupported format {fmt!r}; encrypted formats require a decoder")

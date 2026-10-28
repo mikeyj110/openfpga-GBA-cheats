@@ -8,7 +8,7 @@ pocket_version() {
     echo "invalid version: $version; expected 0.9999.YYYYMMDD" >&2
     return 2
   fi
-  day="${BASH_REMATCH[1]}"
+  day="${version##*.}"
   [[ "${day:0:4}" != 0000 ]] || return 2
   iso="${day:0:4}-${day:4:2}-${day:6:2}"
   # GNU date (Linux) uses -d; BSD date (macOS) uses -j -f.

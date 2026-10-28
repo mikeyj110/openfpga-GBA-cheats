@@ -14,7 +14,7 @@ BUILD.mkdir(parents=True, exist_ok=True)
 COMMON = ['src/fpga/core/cheat_osd.sv', 'src/fpga/core/cheat_font.sv',
           'src/fpga/core/cheat_titles.sv']
 failed = False
-for name in ('tb_cheat_osd_smoke', 'tb_cheat_osd_titles'):
+for name in ('tb_cheat_osd_smoke', 'tb_cheat_osd_titles', 'tb_cheat_osd_menu'):
     out = BUILD / name
     subprocess.run(['iverilog', '-g2012', '-o', str(out),
                     str(ROOT / f'sim/core/{name}.sv')]

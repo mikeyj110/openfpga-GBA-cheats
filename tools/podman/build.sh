@@ -40,7 +40,7 @@ esac
 CORE_DIR=$(ls -d "$REPO/pkg/Cores"/*/ | head -1)
 CORE_NAME=$(basename "$CORE_DIR")
 # Package under a distinct core ID without changing synthesis inputs.
-PACKAGE_CORE_NAME=${PACKAGE_CORE_NAME:-mikeyj110.GBA-Cheats}
+PACKAGE_CORE_NAME=${PACKAGE_CORE_NAME:-mikeyj110.GBA}
 GIT_SHA=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo nogit)
 GIT_DIRTY=$(git -C "$REPO" status --porcelain 2>/dev/null | grep -q . && echo 1 || true)
 
@@ -154,15 +154,16 @@ fi
 cp "$BDIR/$RBF_NAME" "$BDIR/sd/Cores/$PACKAGE_CORE_NAME/$RBF_NAME"
 
 # Stamp the package date. The source commit is recorded in the build report.
-"$PY" - "$BDIR/sd/Cores/$PACKAGE_CORE_NAME/core.json" "$STAMP" "$(pocket_version_date "$STAMP")" <<'PY'
+"$PY" - "$BDIR/sd/Cores/$PACKAGE_CORE_NAME/core.json" "$STAMP" "$(pocket_version_date "$STAMP")" "$PACKAGE_CORE_NAME" <<'PY'
 import json, sys
-path, version, date = sys.argv[1:]
+path, version, date, package_core_name = sys.argv[1:]
 assert len(version) <= 31, f"version too long for APF: {version}"
 j = json.load(open(path))
-j["core"]["metadata"]["shortname"] = "GBA Cheats"
+j["core"]["metadata"]["shortname"] = "GBA"
 j["core"]["metadata"]["description"] = "Game Boy Advance with interactive cheat manager"
-j["core"]["metadata"]["author"] = "mikeyj110 (based on kroy / mincer_ray)"
+j["core"]["metadata"]["author"] = "mikeyj110"
 j["core"]["metadata"]["url"] = "https://github.com/mikeyj110/openfpga-GBA-cheats"
+assert f'{j["core"]["metadata"]["author"]}.{j["core"]["metadata"]["shortname"]}' == package_core_name, "core folder must match author.shortname"
 j["core"]["metadata"]["version"] = version
 j["core"]["metadata"]["date_release"] = date
 json.dump(j, open(path, "w"), indent=2)

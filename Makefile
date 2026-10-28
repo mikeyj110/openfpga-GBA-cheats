@@ -24,12 +24,13 @@ PODMAN   ?= podman
 IMAGE    ?= localhost/pocket-quartus:25.1std
 SIMIMAGE ?= localhost/pocket-sim:1
 HARNESS  := tools/podman
+# Podman-only run flags are not supported by Docker Desktop.
+CONTAINER_RUN_FLAGS = $(if $(filter docker,$(notdir $(firstword $(PODMAN)))),,--userns=keep-id --security-opt label=disable)
 
 # CHT_DB mounts a corpus of .cht files for the cross-check. With it unset,
 # run.py looks in external/, which is git-ignored.
 CHTDB = $(if $(CHT_DB),-v "$(abspath $(CHT_DB)):/cht:ro" -e CHT_DB=/cht,)
-SIMRUN = $(PODMAN) run --rm $(PODMAN_TTY) --userns=keep-id \
-	--security-opt label=disable \
+SIMRUN = $(PODMAN) run --rm $(PODMAN_TTY) $(CONTAINER_RUN_FLAGS) \
 	-v "$(CURDIR):/work" -w /work -e HOME=/tmp $(CHTDB) $(SIMIMAGE)
 
 .PHONY: gba report shell sim-image test sim-shell clean
@@ -43,7 +44,7 @@ report:
 	$(HARNESS)/report.sh
 
 shell:
-	$(PODMAN) run --rm -it --userns=keep-id --security-opt label=disable \
+	$(PODMAN) run --rm -it $(CONTAINER_RUN_FLAGS) \
 		-v "$(CURDIR)/build/gba/work:/work" -w /work -e HOME=/tmp $(IMAGE) bash
 
 sim-image:

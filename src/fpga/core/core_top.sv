@@ -1785,7 +1785,7 @@ wire cheat_menu_capture;
 wire cheat_menu_toggle;
 cheat_menu_input menu_input (
     .clk(clk_sys),
-    .reset(reset),
+    .reset(~pll_core_locked | ~reset_n_s),
     .keys(cont1_key_s),
     .menu_open(cheat_menu_open),
     .selected(cheat_menu_selected),

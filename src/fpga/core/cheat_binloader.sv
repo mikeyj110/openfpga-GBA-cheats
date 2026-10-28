@@ -125,6 +125,7 @@ module cheat_binloader #(
     // To gba_cheats. See the handshake note above.
     output wire [127:0] cheat_in,
     output reg          cheat_on,
+    output wire         group_mode, // high only for accepted v2 header
 
     // Readout, for the menu. See core_top.sv and the note above: group_count
     // and overrun do not mean what they meant in cheat_loader.
@@ -139,6 +140,7 @@ module cheat_binloader #(
   localparam [7:0]  VERSION = 8'd1;
   localparam [7:0]  VERSION_GROUPED = 8'd2;
   reg grouped_format;
+  assign group_mode = grouped_format;
   reg [7:0] group_id_byte;
   reg [15:0] declared_groups;
 

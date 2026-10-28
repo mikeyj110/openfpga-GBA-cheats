@@ -31,7 +31,7 @@ module tb_cheat_osd_titles;
         .wr_col(wr_col),.wr_char(wr_char),.wr_end(wr_end),
         .rd_clk(clk),.rd_group(t_group),.rd_col(t_col),.rd_char(t_char),.rd_len(t_len));
     cheat_font font(.ch(font_ch),.row(font_row),.bits(font_bits));
-    cheat_osd dut(.clk(clk),.reset(reset),.ce(ce),.show(show),.cart_mode(cart),.de(de),.v_blank(vb),
+    cheat_osd dut(.clk(clk),.reset(reset),.ce(ce),.show(show),.menu_show(1'b0),.menu_selected(5'd0),.cart_mode(cart),.de(de),.v_blank(vb),
         .enable_mask(mask),.group_count(groups),.code_count(codes),
         .title_group(t_group),.title_col(t_col),.title_char(t_char),.title_len(t_len),
         .font_ch(font_ch),.font_row(font_row),.font_bits(font_bits),.active(active),.ink(ink));

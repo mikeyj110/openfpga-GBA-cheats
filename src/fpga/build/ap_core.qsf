@@ -854,6 +854,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../core/cart_quirks.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_binloader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_loader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_menu_input.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_runtime_mask.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_osd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_font.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../core/cheat_titles.sv

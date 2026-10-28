@@ -24,6 +24,8 @@ module video_adapter (
     // GBA GPU framebuffer write interface (clk_sys domain)
     // Cheat overlay, all on clk_vid except the title write port.
     input  wire        osd_show,
+    input  wire        menu_show,
+    input  wire [4:0]  menu_selected,
     input  wire        osd_cart,
     input  wire [31:0] osd_mask,
     input  wire [5:0]  osd_groups,

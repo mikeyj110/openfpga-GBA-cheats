@@ -178,6 +178,8 @@ module video_adapter (
         .reset       ( reset ),
         .ce          ( vid_ce ),
         .show        ( osd_show ),
+        .menu_show   ( menu_show ),
+        .menu_selected ( menu_selected ),
         .cart_mode   ( osd_cart ),
         .de          ( active_d1 ),
         .v_blank     ( vs_pipe[0] ),
@@ -199,10 +201,12 @@ module video_adapter (
 
     // Highlight the selected visible cheat row (two 8-pixel header rows).
     // Prototype only: selection does not change cheat state.
+    wire [5:0] menu_row = ({1'b0, menu_selected} >= 6'd18) ?
+        6'd17 : {1'b0, menu_selected};
+    wire [7:0] menu_y_start = 8'd16 + {menu_row, 3'b000};
     wire menu_highlight = menu_show && osd_active &&
-        (menu_selected < 5'd18) &&
-        (v_count >= (16 + {menu_selected, 3'b000})) &&
-        (v_count < (24 + {menu_selected, 3'b000}));
+        (v_count >= menu_y_start) &&
+        (v_count < menu_y_start + 8'd8);
 
     // Stage 2: output registers with sync edge detection
     always @(posedge clk_vid) begin

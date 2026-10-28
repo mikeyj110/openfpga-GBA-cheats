@@ -44,7 +44,7 @@ begin
   end if;
  end process;
  process
-  procedure push(constant gid : natural; constant addr : natural; constant op : natural := 0) is
+  procedure push(constant gid : natural; constant addr : natural; constant op : natural := 0; constant value : natural := 16#12345678#) is
    variable w : std_logic_vector(127 downto 0);
   begin
    w := (others=>'0');
@@ -52,7 +52,7 @@ begin
    w(103 downto 100) := "1111";
    w(99 downto 96) := std_logic_vector(to_unsigned(op,4));
    w(91 downto 64) := std_logic_vector(to_unsigned(addr,28));
-   w(31 downto 0) := x"12345678";
+   w(31 downto 0) := std_logic_vector(to_unsigned(value,32));
    cheat_in <= w;
    wait until falling_edge(clk);
    cheat_on <= '1';
@@ -90,6 +90,36 @@ begin
   assert last_write_addr=std_logic_vector(to_unsigned(16#2000008#,28))
     report "boundary: wrong write address" severity failure;
   report "PASS disabled conditional cannot suppress next enabled group" severity note;
+  -- Enabled group 1: compare against zero (bus model reads zero).
+  gb_on <= '0';
+  wait for 350 ns;
+  gb_on <= '1';
+  wait for 50 ns;
+  push(1,16#2000010#,1,0);
+  push(1,16#2000014#);
+  wait for 300 ns;
+  vsync <= '1';
+  wait until falling_edge(clk);
+  vsync <= '0';
+  wait for 4000 ns;
+  assert reads=4 report "matching condition: expected compare and write reads" severity failure;
+  assert writes=3 report "matching condition: expected write" severity failure;
+  report "PASS enabled matching conditional pair" severity note;
+  -- Nonmatching comparison must suppress its following write.
+  gb_on <= '0';
+  wait for 350 ns;
+  gb_on <= '1';
+  wait for 50 ns;
+  push(1,16#2000018#,1,1);
+  push(1,16#200001C#);
+  wait for 300 ns;
+  vsync <= '1';
+  wait until falling_edge(clk);
+  vsync <= '0';
+  wait for 4000 ns;
+  assert reads=5 report "nonmatching condition: unexpected write read" severity failure;
+  assert writes=3 report "nonmatching condition: unexpected write" severity failure;
+  report "PASS enabled nonmatching conditional pair" severity note;
   stop;
   wait;
  end process;

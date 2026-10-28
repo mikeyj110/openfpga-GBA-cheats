@@ -53,7 +53,8 @@ worst() {  # worst slack for one analysis type across all corners
   fi
 } > "$BDIR/report.txt"
 
-sed -n '1,/^---- utilization/{/^---- utilization/d;p}' "$BDIR/report.txt"
+# POSIX awk works with both macOS BSD tools and Linux environments.
+awk '/^---- utilization/ {exit} {print}' "$BDIR/report.txt"
 grep -E "Logic utilization|Total registers|Total RAM Blocks|Total block memory bits" "$OUT/ap_core.fit.summary"
 echo "full report: $BDIR/report.txt"
 

@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cheats"))
 from profile2cht import convert
+import gbacht
+import cht2bin
 
 def profile():
     return {"schema_version": 1, "game": {"name": "Example"},
@@ -15,6 +17,25 @@ class ProfileTests(unittest.TestCase):
         result = convert(profile()).decode()
         self.assertIn('cheat0_code = "3200E924+0096"', result)
         self.assertIn("cheat0_enable = true", result)
+    def test_parser_round_trip(self):
+        p = profile()
+        data = convert(p)
+        groups, stats = gbacht.parse(data)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].desc, "Health")
+        self.assertEqual(len(groups[0].entries), 1)
+        self.assertEqual(groups[0].entries[0].address, 0x0200E924)
+        self.assertEqual(groups[0].entries[0].value, 0x96)
+        self.assertEqual(groups[0].entries[0].bytemask, 1)
+        packed = cht2bin.convert(data)
+        self.assertEqual(cht2bin.unpack(packed.blob), gbacht.words(groups))
+
+    def test_disabled_not_loaded(self):
+        p = profile()
+        p["cheats"][0]["enabled"] = False
+        groups, _ = gbacht.parse(convert(p))
+        self.assertEqual(groups, [])
+
     def test_reject_encrypted(self):
         p = profile()
         p["cheats"][0]["format"] = "gameshark-v3-encrypted"

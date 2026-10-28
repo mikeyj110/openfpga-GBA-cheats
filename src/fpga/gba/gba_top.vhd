@@ -53,6 +53,8 @@ entity gba_top is
       -- cheats
       cheat_clear           : in     std_logic;
       cheats_enabled        : in     std_logic;
+      cheat_group_mode      : in     std_logic := '0';
+      cheat_group_mask      : in     std_logic_vector(31 downto 0) := (others => '1');
       cheat_on              : in     std_logic;
       cheat_in              : in     std_logic_vector(127 downto 0);
       cache_invalidate      : in     std_logic := '0';    -- rom_patch table changed
@@ -510,6 +512,8 @@ begin
 
       cheat_clear    => cheat_clear,
       cheats_enabled => cheats_enabled,
+      group_mode     => cheat_group_mode,
+      group_mask     => cheat_group_mask,
       cheat_on       => cheat_on,
       cheat_in       => cheat_in,
       cheats_active  => cheats_active,

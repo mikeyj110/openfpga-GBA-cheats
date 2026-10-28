@@ -2487,6 +2487,8 @@ rom_patch rom_patches (
     .load_reset ( cheat_reset ),
     .cheat_on   ( cheat_on ),
     .cheat_in   ( cheat_in ),
+    .group_mode ( cheat_group_mode ),
+    .group_mask ( cheat_runtime_enabled & cheat_loaded_mask ),
     .rd_req     ( sdram_read_req_gba ),
     .rd_addr    ( sdram_read_addr_gba ),
     .din_first  ( romsrc_gba_rd_data_raw ),

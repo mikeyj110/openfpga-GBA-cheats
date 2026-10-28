@@ -51,19 +51,19 @@ module video_adapter (
 );
 
     // === Raster Scan Timing Parameters ===
-    localparam int unsigned H_ACTIVE = 240;
-    localparam int unsigned H_FP     = 10;
-    localparam int unsigned H_SYNC   = 20;
-    localparam int unsigned H_BP     = 38;
-    localparam int unsigned H_TOTAL  = H_ACTIVE + H_FP + H_SYNC + H_BP;
+    localparam integer H_ACTIVE = 240;
+    localparam integer H_FP     = 10;
+    localparam integer H_SYNC   = 20;
+    localparam integer H_BP     = 38;
+    localparam integer H_TOTAL  = H_ACTIVE + H_FP + H_SYNC + H_BP;
 
-    localparam int unsigned V_ACTIVE = 160;
-    localparam int unsigned V_FP     = 5;
-    localparam int unsigned V_SYNC   = 5;
-    localparam int unsigned V_BP     = 58;
-    localparam int unsigned V_TOTAL  = V_ACTIVE + V_FP + V_SYNC + V_BP;
+    localparam integer V_ACTIVE = 160;
+    localparam integer V_FP     = 5;
+    localparam integer V_SYNC   = 5;
+    localparam integer V_BP     = 58;
+    localparam integer V_TOTAL  = V_ACTIVE + V_FP + V_SYNC + V_BP;
 
-    localparam int unsigned FB_PIXELS = H_ACTIVE * V_ACTIVE;
+    localparam integer FB_PIXELS = H_ACTIVE * V_ACTIVE;
 
     // === Framebuffer (dual-clock BRAM) ===
     // 38,400 x 18-bit ~ 86 KB ~ 30 M10K blocks

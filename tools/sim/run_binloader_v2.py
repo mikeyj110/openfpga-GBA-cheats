@@ -73,5 +73,25 @@ def main() -> None:
 
 
 
+    # A v1 file must still load the same operations, with zero group tags.
+    import run_binloader as legacy
+    old_entries = legacy.TABLE[:3]
+    old_blob = legacy.stream(old_entries)
+    old_path = BUILD / "fixture-legacy-v1.chtbin"
+    old_path.write_bytes(old_blob)
+    old_output = subprocess.run(["vvp", str(TB), f"+f={old_path}", "+gap=0"],
+                                cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    old_actual = re.findall(r"^WORD ([0-9a-f]{32})$", old_output, re.M)
+    if old_actual != legacy.words(old_entries) or (
+            "declared=3 entries=3 rejected=0 malformed=0 stored=3" not in old_output):
+        raise AssertionError("v1 regression:\\n" + old_output)
+    print("ok v1 compatibility")
+
+    # A group boundary may not merge adjacent operations into one group.
+    boundary = [v2.GroupedEntry(0x101, 0), v2.GroupedEntry(0x202, 0),
+                v2.GroupedEntry(0x303, 1), v2.GroupedEntry(0x404, 2)]
+    run(v2.pack(boundary, 3), boundary, 3, 0)
+    print("ok v2 group boundaries")
+
 if __name__ == "__main__":
     main()

@@ -20,6 +20,7 @@ architecture test of tb_cheat_group_gate is
  signal active : std_logic;
  signal sleep : std_logic;
  signal reads : natural := 0;
+ signal last_write_addr : std_logic_vector(27 downto 0) := (others => '0');
  signal writes : natural := 0;
 begin
  clk <= not clk after 5 ns;
@@ -37,18 +38,19 @@ begin
    bus_done <= bus_ena;
    if bus_ena='1' then
     if bus_rnw='1' then reads<=reads+1;
-    else writes<=writes+1;
+    else writes<=writes+1; last_write_addr<=bus_addr;
     end if;
    end if;
   end if;
  end process;
  process
-  procedure push(constant gid : natural; constant addr : natural) is
+  procedure push(constant gid : natural; constant addr : natural; constant op : natural := 0) is
    variable w : std_logic_vector(127 downto 0);
   begin
    w := (others=>'0');
    w(111 downto 104) := std_logic_vector(to_unsigned(gid,8));
    w(103 downto 100) := "1111";
+   w(99 downto 96) := std_logic_vector(to_unsigned(op,4));
    w(91 downto 64) := std_logic_vector(to_unsigned(addr,28));
    w(31 downto 0) := x"12345678";
    cheat_in <= w;
@@ -72,6 +74,22 @@ begin
   assert reads=1 report "disabled group caused read or enabled group missing read" severity failure;
   assert writes=1 report "disabled group caused write or enabled group missing write" severity failure;
   report "PASS group mask: group 0 disabled, group 1 enabled" severity note;
+  gb_on <= '0';
+  wait for 350 ns;
+  gb_on <= '1';
+  wait for 50 ns;
+  push(0,16#2000000#,1);
+  push(1,16#2000008#);
+  wait for 300 ns;
+  vsync <= '1';
+  wait until falling_edge(clk);
+  vsync <= '0';
+  wait for 4000 ns;
+  assert reads=2 report "boundary: expected one additional read" severity failure;
+  assert writes=2 report "boundary: expected one additional write" severity failure;
+  assert last_write_addr=std_logic_vector(to_unsigned(16#2000008#,28))
+    report "boundary: wrong write address" severity failure;
+  report "PASS disabled conditional cannot suppress next enabled group" severity note;
   stop;
   wait;
  end process;

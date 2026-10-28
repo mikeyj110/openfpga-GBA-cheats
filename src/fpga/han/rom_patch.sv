@@ -48,6 +48,8 @@ module rom_patch #(
     input  wire         load_reset,
     input  wire         cheat_on,
     input  wire [127:0] cheat_in,
+    input  wire         group_mode,
+    input  wire [31:0]  group_mask,
 
     // the ROM read stream, DWORD addresses
     input  wire         rd_req,
@@ -65,9 +67,13 @@ module rom_patch #(
     reg [22:0] slot_addr [0:SLOTS-1];   // ROM DWORD index, 32 MB
     reg [31:0] slot_val  [0:SLOTS-1];
     reg [3:0]  slot_be   [0:SLOTS-1];
+    reg [7:0]  slot_group [0:SLOTS-1];
+    reg        slot_grouped [0:SLOTS-1];
     reg [SLOTS-1:0] valid = {SLOTS{1'b0}};
 
     reg         cheat_on_1 = 1'b0;
+    reg [31:0] prior_group_mask = 32'hffffffff;
+    reg prior_group_mode = 1'b0;
     reg [127:0] cheat_in_1 = 128'd0;
     wire [27:0] entry_addr = cheat_in_1[91:64];
     wire        entry_rom  = entry_addr[27:25] == 3'b100 ||   // 08, 09
@@ -80,6 +86,7 @@ module rom_patch #(
         count = 5'd0;
         for (i = 0; i < SLOTS; i = i + 1) begin
             slot_addr[i] = 23'd0; slot_val[i] = 32'd0; slot_be[i] = 4'd0;
+            slot_group[i] = 8'd0; slot_grouped[i] = 1'b0;
         end
     end
 
@@ -87,7 +94,9 @@ module rom_patch #(
     always @(posedge clk) begin
         cheat_on_1 <= cheat_on;
         cheat_in_1 <= cheat_in;
-        changed    <= 1'b0;
+        changed    <= (group_mask != prior_group_mask || group_mode != prior_group_mode) && (count != 0);
+        prior_group_mask <= group_mask;
+        prior_group_mode <= group_mode;
         if (load_reset) begin
             valid <= {SLOTS{1'b0}};
             count <= 5'd0;
@@ -96,6 +105,8 @@ module rom_patch #(
             slot_addr[count[3:0]] <= entry_addr[24:2];
             slot_val[count[3:0]]  <= cheat_in_1[31:0];
             slot_be[count[3:0]]   <= cheat_in_1[103:100];
+            slot_group[count[3:0]] <= cheat_in_1[111:104];
+            slot_grouped[count[3:0]] <= group_mode;
             valid[count[3:0]]     <= 1'b1;
             count                 <= count + 5'd1;
             changed               <= 1'b1;
@@ -105,11 +116,19 @@ module rom_patch #(
     reg [24:0] req_addr = 25'd0;
     always @(posedge clk) if (rd_req) req_addr <= rd_addr;
 
+    function automatic slot_enabled(input integer idx);
+        begin
+            slot_enabled = !slot_grouped[idx] || !group_mode ||
+                           (slot_group[idx] < 8'd32 &&
+                            group_mask[slot_group[idx][4:0]]);
+        end
+    endfunction
+
     reg [SLOTS-1:0] hit_first = {SLOTS{1'b0}}, hit_second = {SLOTS{1'b0}};
     always @(posedge clk) begin
         for (i = 0; i < SLOTS; i = i + 1) begin
-            hit_first[i]  <= valid[i] && req_addr == {2'b00, slot_addr[i]};
-            hit_second[i] <= valid[i] && (req_addr ^ 25'd1) == {2'b00, slot_addr[i]};
+            hit_first[i]  <= valid[i] && slot_enabled(i) && req_addr == {2'b00, slot_addr[i]};
+            hit_second[i] <= valid[i] && slot_enabled(i) && (req_addr ^ 25'd1) == {2'b00, slot_addr[i]};
         end
     end
 

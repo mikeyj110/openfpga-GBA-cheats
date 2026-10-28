@@ -12,7 +12,7 @@ module tb_cheat_video_rgb;
     wire video_de, video_vs, video_hs, video_skip;
     video_adapter dut (
         .clk_sys(clk), .clk_vid(clk), .reset(reset),
-        .osd_show(menu_show), .menu_show(menu_show),
+        .osd_show(1'b1), .menu_show(menu_show),
         .menu_selected(menu_selected), .osd_cart(1'b0),
         .osd_mask(32'h00000001), .osd_groups(6'd32), .osd_codes(6'd1),
         .title_clk(clk), .title_reset(reset), .title_wr(1'b0),

@@ -5,11 +5,12 @@
 module tb_rom_patch;
     reg clk=0; always #5 clk=~clk;
     reg load_reset=1, cheat_on=0; reg [127:0] cheat_in=0;
+    reg group_mode=0; reg [31:0] group_mask=32'hffffffff;
     reg rd_req=0; reg [24:0] rd_addr=0; reg [31:0] din_first=32'h11223344, din_second=32'h55667788;
     reg rd_ready=0; wire rd_ready_out;
     wire [31:0] dout_first, dout_second; wire [4:0] count; wire changed; integer changes=0, n=0;
     always @(posedge clk) if (changed) changes=changes+1;
-    rom_patch dut(.clk(clk),.load_reset(load_reset),.cheat_on(cheat_on),.cheat_in(cheat_in),
+    rom_patch dut(.clk(clk),.load_reset(load_reset),.cheat_on(cheat_on),.cheat_in(cheat_in),.group_mode(group_mode),.group_mask(group_mask),
         .rd_req(rd_req),.rd_addr(rd_addr),.din_first(din_first),.din_second(din_second),
         .rd_ready(rd_ready),.dout_first(dout_first),.dout_second(dout_second),
         .rd_ready_out(rd_ready_out),.count(count),.changed(changed));
@@ -89,6 +90,22 @@ module tb_rom_patch;
         if (dout_first!==32'h11CC5544)
             $fatal(1,"FAIL lowest slot did not win the lane: %h", dout_first);
 
+        // Grouped patches remain stored but must disappear/reappear on toggles.
+        load_reset=1; @(negedge clk); load_reset=0;
+        group_mode=1; group_mask=32'h00000002; // group 0 off, group 1 on
+        push(28'h8004000, 32'h000000A5, 4'h1, 4'd0); // group 0
+        @(negedge clk);
+        read(25'h1000);
+        if (dout_first!==32'h11223344) $fatal(1,"FAIL disabled ROM patch applied");
+        group_mask=32'h00000003;
+        repeat(3) @(negedge clk);
+        read(25'h1000);
+        if (dout_first!==32'h112233A5) $fatal(1,"FAIL enabled ROM patch missing");
+        group_mask=32'h00000002;
+        repeat(3) @(negedge clk);
+        read(25'h1000);
+        if (dout_first!==32'h11223344) $fatal(1,"FAIL ROM patch did not disable again");
+        $display("PASS grouped ROM patch toggle");
         $display("PASS rom_patch: fill from the push, both words, byte lanes, RAM and conditional entries ignored, reset, 16 slots, no overrun, lowest slot wins, registered line and one-clock done");
         $finish;
     end

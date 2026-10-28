@@ -23,5 +23,16 @@ for name in ('tb_cheat_osd_smoke', 'tb_cheat_osd_titles', 'tb_cheat_osd_menu', '
     print(result.stdout.strip())
     if 'PASS' not in result.stdout:
         failed = True
+# Integrated adapter bench exercises the real output RGB path, not a copy
+# of the highlight expression.
+out = BUILD / 'tb_cheat_video_rgb'
+subprocess.run(['iverilog', '-g2012', '-s', 'tb_cheat_video_rgb', '-o', str(out),
+                str(ROOT / 'sim/core/tb_cheat_video_rgb.sv'),
+                str(ROOT / 'src/fpga/core/video_adapter.sv')]
+               + [str(ROOT / s) for s in COMMON], check=True)
+result = subprocess.run(['vvp', '-n', str(out)], capture_output=True, text=True)
+print(result.stdout.strip())
+if result.returncode != 0 or 'PASS' not in result.stdout:
+    failed = True
 if failed:
     raise SystemExit(1)

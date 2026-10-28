@@ -1423,12 +1423,16 @@ wire [5:0] cheat_entries, cheat_groups;
 reg [31:0] osd_mask_ss, osd_mask_s;
 reg [5:0]  osd_groups_ss, osd_groups_s, osd_codes_ss, osd_codes_s;
 reg        osd_show_ss, osd_show_s, osd_cart_ss, osd_cart_s;
+reg menu_show_ss, menu_show_s;
+reg [4:0] menu_selected_ss, menu_selected_s;
 wire [31:0] osd_mask_sys = cheats_on ? ((32'd1 << cheat_groups) - 32'd1) : 32'd0;
 always @(posedge clk_vid) begin
     osd_mask_ss   <= osd_mask_sys;        osd_mask_s   <= osd_mask_ss;
     osd_groups_ss <= cheat_groups;        osd_groups_s <= osd_groups_ss;
     osd_codes_ss  <= cheat_entries;       osd_codes_s  <= osd_codes_ss;
     osd_show_ss   <= cheats_osd;          osd_show_s   <= osd_show_ss;
+    menu_show_ss <= cheat_menu_open;       menu_show_s <= menu_show_ss;
+    menu_selected_ss <= cheat_menu_selected; menu_selected_s <= menu_selected_ss;
     osd_cart_ss   <= osnotify_cart_play;  osd_cart_s   <= osd_cart_ss;
 end
 
@@ -1706,7 +1710,9 @@ video_adapter video_out (
     .clk_vid    ( clk_vid ),
     .reset      ( ~pll_core_locked ),
 
-    .osd_show    ( osd_show_s ),
+    .osd_show    ( osd_show_s | menu_show_s ),
+    .menu_show   ( menu_show_s ),
+    .menu_selected ( menu_selected_s ),
     .osd_cart    ( osd_cart_s ),
     .osd_mask    ( osd_mask_s ),
     .osd_groups  ( osd_groups_s ),

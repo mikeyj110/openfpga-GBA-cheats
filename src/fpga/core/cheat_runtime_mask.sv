@@ -9,8 +9,6 @@ module cheat_runtime_mask (
     input wire [4:0] selected,
     output reg [31:0] enable_mask
 );
-    wire [31:0] valid_mask = (group_count >= 6'd32) ? 32'hffffffff :
-                              ((32'h00000001 << group_count) - 32'h00000001);
     always @(posedge clk) begin
         if (reset)
             enable_mask <= 32'hffffffff;

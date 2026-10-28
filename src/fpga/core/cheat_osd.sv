@@ -51,6 +51,8 @@ module cheat_osd #(
 	input  wire        ce,
 
 	input  wire        show,         // menu toggle, already on this clock
+	input  wire        menu_show,    // interactive mode includes disabled groups
+	input  wire [4:0]  menu_selected, // selected group, scroll viewport to it
 	input  wire        cart_mode,    // playing a physical cartridge
 	input  wire        de,           // active picture
 	input  wire        v_blank,
@@ -118,6 +120,11 @@ module cheat_osd #(
 		end
 	end
 
+	// Interactive mode displays every group. Keep the selected group within
+	// the 18-row viewport, scrolling only after the first page.
+	wire [5:0] menu_first = ({1'b0, menu_selected} >= MAX_LINES) ?
+	    ({1'b0, menu_selected} - MAX_LINES + 6'd1) : 6'd0;
+
 	// ---------------------------------------------------- display list
 	// Which groups are on, in order, rebuilt every vertical blank.
 	reg [4:0] list [0:MAX_LINES-1];
@@ -144,7 +151,7 @@ module cheat_osd #(
 				scanning <= 1'b0;
 				list_n   <= found;
 			end else begin
-				if (enable_mask[scan[4:0]]) begin
+								if (menu_show ? (scan >= menu_first) : enable_mask[scan[4:0]]) begin
 					list[found] <= scan[4:0];
 					found       <= found + 5'd1;
 				end

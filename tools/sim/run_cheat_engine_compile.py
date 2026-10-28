@@ -21,7 +21,19 @@ def main():
     print("PASS gba_cheats VHDL analysis and elaboration")
     run("-a", "--std=08", str(ROOT / "tools/sim/tb_cheat_group_gate.vhd"))
     run("-e", "--std=08", "tb_cheat_group_gate")
-    run("-r", "--std=08", "tb_cheat_group_gate", "--assert-level=error", "--stop-time=10us")
+    result = subprocess.run(
+        ["ghdl", "-r", "--std=08", "tb_cheat_group_gate",
+         "--assert-level=error", "--stop-time=20us"],
+        cwd=BUILD, capture_output=True, text=True, check=True)
+    output = result.stdout + result.stderr
+    print(output, end="")
+    required = (
+        "PASS group mask: group 0 disabled, group 1 enabled",
+        "PASS disabled conditional cannot suppress next enabled group",
+    )
+    missing = [marker for marker in required if marker not in output]
+    if missing:
+        raise RuntimeError("Behavioral bench ended before required checks: " + repr(missing))
     print("PASS grouped execution behavioral bench")
 
 if __name__ == "__main__":

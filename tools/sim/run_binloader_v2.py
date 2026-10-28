@@ -58,6 +58,20 @@ def main() -> None:
     run(v2.pack([], 0), [], 0, 0)
     print("ok v2 empty")
 
+    # Reject an entry whose ID is equal to the declared group count.
+    bad = bytearray(blob)
+    bad[16 + 13] = 2
+    path = BUILD / "invalid-group-v2.chtbin"
+    path.write_bytes(bad)
+    output = subprocess.run(["vvp", str(TB), f"+f={path}", "+gap=0"],
+                            cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    actual = [int(x, 16) for x in re.findall(r"^WORD ([0-9a-f]{32})$", output, re.M)]
+    expected = [entries[1].word, entries[2].word | (1 << 104)]
+    if actual != expected or "declared=2 entries=2 rejected=1 malformed=1 stored=2" not in output:
+        raise AssertionError("invalid group ID was not rejected:\\n" + output)
+    print("ok v2 invalid group ID rejected")
+
+
 
 if __name__ == "__main__":
     main()

@@ -159,7 +159,7 @@ def convert(data: bytes, parse_limit: int = MAX_ENTRIES, format_version: int = 1
     if format_version == 1:
         blob = pack(words)
     elif format_version == 2:
-        tagged = [grouped_chtbin.GroupedEntry(e.word(), group_id)
+        tagged = [grouped_chtbin.GroupedEntry(e.word, group_id)
                   for group_id, group in enumerate(groups) for e in group.entries]
         blob = grouped_chtbin.pack(tagged, len(groups))
     else:

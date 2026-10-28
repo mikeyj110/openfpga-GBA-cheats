@@ -1446,6 +1446,8 @@ end
 // the one that does not own the file produces nothing from it.
 wire [127:0] bin_cheat_in, txt_cheat_in;
 wire         bin_cheat_on, txt_cheat_on;
+wire         bin_group_mode;
+wire         cheat_group_mode = cheat_is_bin && bin_group_mode;
 wire [5:0]   bin_entries, bin_groups, txt_entries, txt_groups;
 reg  [2:0]   cheat_hdr_pos = 3'd0;
 reg          cheat_is_bin  = 1'b0;
@@ -1479,6 +1481,7 @@ cheat_binloader #(
     .eof          ( cheat_eof ),
     .cheat_in     ( bin_cheat_in ),
     .cheat_on     ( bin_cheat_on ),
+    .group_mode   ( bin_group_mode ),
     .entry_count  ( bin_entries ),
     .group_count  ( bin_groups ),
     .byte_count   (  ),
@@ -1963,6 +1966,8 @@ gba_top #(
     // Cheats
     .cheat_clear         ( cheat_clear ),
     .cheats_enabled      ( cheats_enabled ),
+    .cheat_group_mode    ( cheat_group_mode ),
+    .cheat_group_mask    ( cheat_runtime_enabled & cheat_loaded_mask ),
     .cheat_on            ( cheat_on ),
     .cache_invalidate    ( rom_patch_changed ),
     .cheat_in            ( cheat_in ),

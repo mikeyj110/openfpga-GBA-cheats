@@ -39,6 +39,8 @@ esac
 
 CORE_DIR=$(ls -d "$REPO/pkg/Cores"/*/ | head -1)
 CORE_NAME=$(basename "$CORE_DIR")
+# Package under a distinct core ID without changing synthesis inputs.
+PACKAGE_CORE_NAME=${PACKAGE_CORE_NAME:-mikeyj110.GBA-Cheats}
 GIT_SHA=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo nogit)
 GIT_DIRTY=$(git -C "$REPO" status --porcelain 2>/dev/null | grep -q . && echo 1 || true)
 
@@ -145,14 +147,22 @@ RBF_NAME=$("$PY" -c "import json,sys;print(json.load(open(sys.argv[1]))['core'][
 
 rm -rf "$BDIR/sd"
 rsync -a "$REPO/pkg/" "$BDIR/sd/"
-cp "$BDIR/$RBF_NAME" "$BDIR/sd/Cores/$CORE_NAME/$RBF_NAME"
+if [[ "$PACKAGE_CORE_NAME" != "$CORE_NAME" ]]; then
+  test ! -e "$BDIR/sd/Cores/$PACKAGE_CORE_NAME" || { echo "package core ID already exists: $PACKAGE_CORE_NAME" >&2; exit 1; }
+  mv "$BDIR/sd/Cores/$CORE_NAME" "$BDIR/sd/Cores/$PACKAGE_CORE_NAME"
+fi
+cp "$BDIR/$RBF_NAME" "$BDIR/sd/Cores/$PACKAGE_CORE_NAME/$RBF_NAME"
 
 # Stamp the package date. The source commit is recorded in the build report.
-"$PY" - "$BDIR/sd/Cores/$CORE_NAME/core.json" "$STAMP" "$(pocket_version_date "$STAMP")" <<'PY'
+"$PY" - "$BDIR/sd/Cores/$PACKAGE_CORE_NAME/core.json" "$STAMP" "$(pocket_version_date "$STAMP")" <<'PY'
 import json, sys
 path, version, date = sys.argv[1:]
 assert len(version) <= 31, f"version too long for APF: {version}"
 j = json.load(open(path))
+j["core"]["metadata"]["shortname"] = "GBA Cheats"
+j["core"]["metadata"]["description"] = "Game Boy Advance with interactive cheat manager"
+j["core"]["metadata"]["author"] = "mikeyj110 (based on kroy / mincer_ray)"
+j["core"]["metadata"]["url"] = "https://github.com/mikeyj110/openfpga-GBA-cheats"
 j["core"]["metadata"]["version"] = version
 j["core"]["metadata"]["date_release"] = date
 json.dump(j, open(path, "w"), indent=2)
@@ -160,7 +170,7 @@ open(path, "a").write("\n")
 print(f"stamped core.json: version={version} date_release={date}")
 PY
 
-ZIP="$BDIR/${CORE_NAME}_${STAMP}.zip"
+ZIP="$BDIR/${PACKAGE_CORE_NAME}_${STAMP}.zip"
 rm -f "$ZIP"
 (cd "$BDIR/sd" && zip -qr "$ZIP" .)
 

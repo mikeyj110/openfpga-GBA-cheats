@@ -23,13 +23,15 @@ def main():
     run("-e", "--std=08", "tb_cheat_group_gate")
     result = subprocess.run(
         ["ghdl", "-r", "--std=08", "tb_cheat_group_gate",
-         "--assert-level=error", "--stop-time=20us"],
+         "--assert-level=error", "--stop-time=30us"],
         cwd=BUILD, capture_output=True, text=True, check=True)
     output = result.stdout + result.stderr
     print(output, end="")
     required = (
         "PASS group mask: group 0 disabled, group 1 enabled",
         "PASS disabled conditional cannot suppress next enabled group",
+        "PASS enabled matching conditional pair",
+        "PASS enabled nonmatching conditional pair",
     )
     missing = [marker for marker in required if marker not in output]
     if missing:

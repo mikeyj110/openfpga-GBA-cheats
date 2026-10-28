@@ -197,6 +197,13 @@ module video_adapter (
 
     wire [23:0] osd_dim = {2'b0, r8[7:2], 2'b0, g8[7:2], 2'b0, b8[7:2]};
 
+    // Highlight the selected visible cheat row (two 8-pixel header rows).
+    // Prototype only: selection does not change cheat state.
+    wire menu_highlight = menu_show && osd_active &&
+        (menu_selected < 5'd18) &&
+        (v_count >= (16 + {menu_selected, 3'b000})) &&
+        (v_count < (24 + {menu_selected, 3'b000}));
+
     // Stage 2: output registers with sync edge detection
     always @(posedge clk_vid) begin
         if (reset) begin
@@ -207,7 +214,8 @@ module video_adapter (
             video_skip <= 1'b0;
         end else begin
             video_rgb  <= !active_d1 ? 24'd0
-                        : osd_active ? (osd_ink ? 24'hFFFFFF : osd_dim)
+                        : osd_active ? (menu_highlight ? (osd_ink ? 24'hFFFFFF : 24'h205080)
+                                                     : (osd_ink ? 24'hFFFFFF : osd_dim))
                         : {r8, g8, b8};
             video_de   <= active_d1;
             video_hs   <= hs_pipe[0] & ~hs_pipe[1];

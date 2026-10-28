@@ -1793,6 +1793,7 @@ cheat_menu_input menu_input (
     .clk(clk_sys),
     .reset(~pll_core_locked | ~reset_n_s),
     .keys(cont1_key_s),
+    .group_count(cheat_groups),
     .menu_open(cheat_menu_open),
     .selected(cheat_menu_selected),
     .consume_game_keys(cheat_menu_capture),
